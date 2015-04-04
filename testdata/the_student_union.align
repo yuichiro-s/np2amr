@@ -1,0 +1,13 @@
+# ::snt the student union
+# ::tok the student union
+# ::alignments 2-3|0 1-2|0.0+0.0.0 ::annotator Aligner v.02 ::date 2015-03-24T15:05:14.600
+# ::node	0	union	2-3
+# ::node	0.0	person	1-2
+# ::node	0.0.0	study-01	1-2
+# ::root	0	union
+# ::edge	person	ARG0-of	study-01	0.0	0.0.0	
+# ::edge	union	consist-of	person	0	0.0	
+(u / union
+     :consist-of (p / person
+         :ARG0-of (s / study-01)))
+

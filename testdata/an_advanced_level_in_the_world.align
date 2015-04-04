@@ -1,0 +1,12 @@
+# ::snt an advanced level in the world
+# ::tok an advanced level in the world
+# ::alignments 2-3|0 1-2|0.0 5-6|0.0.0 ::annotator Aligner v.02 ::date 2015-03-24T15:05:14.778
+# ::node	0	level	2-3
+# ::node	0.0	advance-01	1-2
+# ::node	0.0.0	world	5-6
+# ::root	0	level
+# ::edge	advance-01	compared-to	world	0.0	0.0.0	
+# ::edge	level	ARG1-of	advance-01	0	0.0	
+(l / level
+     :ARG1-of (a / advance-01
+         :compared-to (w / world)))

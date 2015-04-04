@@ -1,0 +1,13 @@
+# ::snt earthquake workers
+# ::tok earthquake workers
+# ::alignments 1-2|0+0.0 0-1|0.0.0 ::annotator Aligner v.02 ::date 2015-03-24T15:05:14.789
+# ::node	0	person	1-2
+# ::node	0.0	work-01	1-2
+# ::node	0.0.0	earthquake	0-1
+# ::root	0	person
+# ::edge	person	ARG0-of	work-01	0	0.0	
+# ::edge	work-01	mod	earthquake	0.0	0.0.0	
+(p / person
+     :ARG0-of (w / work-01
+         :mod (e / earthquake)))
+

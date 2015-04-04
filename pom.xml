@@ -15,7 +15,7 @@
                     <archive>
                         <manifest>
                             <addClasspath>true</addClasspath>
-                            <mainClass>io.github.yuichiros.arcstd.Main</mainClass>
+                            <mainClass>np2amr.Main</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -77,6 +77,11 @@
             <artifactId>hamcrest-core</artifactId>
             <version>1.3</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>edu.mit</groupId>
+            <artifactId>jwi</artifactId>
+            <version>2.2.3</version>
         </dependency>
     </dependencies>
     <properties>

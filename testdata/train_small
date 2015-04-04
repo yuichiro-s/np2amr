@@ -1,0 +1,16 @@
+# ::snt migrant worker units
+# ::tok migrant worker units
+# ::alignments 2-3|0 1-2|0.0.1 0-1|0.0+0.0.0 ::annotator Aligner v.02 ::date 2015-03-24T15:05:14.934
+# ::node	0	unit	2-3
+# ::node	0.0	person	0-1
+# ::node	0.0.0	migrate-01	0-1
+# ::node	0.0.1	work-01	1-2
+# ::root	0	unit
+# ::edge	person	ARG0-of	migrate-01	0.0	0.0.0	
+# ::edge	person	ARG0-of	work-01	0.0	0.0.1	
+# ::edge	unit	consist-of	person	0	0.0	
+(u / unit
+     :consist-of (p / person
+         :ARG0-of (m / migrate-01)
+         :ARG0-of (w / work-01)))
+

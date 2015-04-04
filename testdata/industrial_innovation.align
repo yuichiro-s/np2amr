@@ -1,0 +1,10 @@
+# ::snt industrial innovation
+# ::tok industrial innovation
+# ::alignments 1-2|0 0-1|0.0 ::annotator Aligner v.02 ::date 2015-03-24T15:05:14.398
+# ::node	0	innovate-01	1-2
+# ::node	0.0	industry	0-1
+# ::root	0	innovate-01
+# ::edge	innovate-01	ARG1	industry	0	0.0	
+(i / innovate-01
+     :ARG1 (i2 / industry))
+

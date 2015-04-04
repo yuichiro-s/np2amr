@@ -1,6 +1,6 @@
 package np2amr.amr;
 
-import java.util.Map;
+import np2amr.Util;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -75,6 +75,19 @@ public class ConceptTest {
         assertNotEquals(c7, c7_);
 
 
+    }
+
+    @Test
+    public void testFromSexp() {
+        Concept c;
+        c = Concept.fromSexp("(c / colonize-01)");
+        assertEquals("colonize-01", Util.s(c.conceptId));
+
+        c = Concept.fromSexp("(p / person :ARG0-of (f / fight-01))");
+        assertEquals("person", Util.s(c.conceptId));
+        assertEquals(1, c.children.size());
+        assertEquals("ARG0-of", Util.s(c.children.get(0).getLeft()));
+        assertEquals("fight-01", Util.s(c.children.get(0).getRight().conceptId));
     }
     
 }

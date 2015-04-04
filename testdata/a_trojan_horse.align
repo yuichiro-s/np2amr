@@ -1,0 +1,10 @@
+# ::snt a trojan horse
+# ::tok a trojan horse
+# ::alignments 2-3|0 ::annotator Aligner v.02 ::date 2015-03-24T15:05:17.642
+# ::node	0	horse	2-3
+# ::node	0.0	Trojan	
+# ::root	0	horse
+# ::edge	horse	mod	Trojan	0	0.0	
+(h / horse
+     :mod (t / Trojan))
+
