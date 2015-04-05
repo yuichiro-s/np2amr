@@ -430,6 +430,7 @@ public class Io {
         Path stringIdMapPath = path.resolve(Main.STRING2ID_PATH);
         Path labelsPath = path.resolve(Main.LABELS_PATH);
         Path conceptTablePath = path.resolve(Main.CONCEPT_TABLE_PATH);
+        Path wnPath = path.resolve(Main.WN_PATH);
 
         // create stringIdMap
         Map<String, Integer> str2id = new HashMap<>();
@@ -475,12 +476,20 @@ public class Io {
             }
         }
         Config.conceptTable = conceptTable;
+
+        // load Wordnet
+        try (BufferedReader br = Files.newBufferedReader(wnPath, Charset.defaultCharset())) {
+            String pathStr = br.readLine();
+            Config.loadWnDict(pathStr);
+        }
+
     }
 
     public static void saveConfig(Path path) throws IOException {
         Path stringIdMapPath = path.resolve(Main.STRING2ID_PATH);
         Path labelsPath = path.resolve(Main.LABELS_PATH);
         Path conceptTablePath = path.resolve(Main.CONCEPT_TABLE_PATH);
+        Path wnPath = path.resolve(Main.WN_PATH);
 
         // save stringIdMap
         List<String> id2str = Config.stringIdMap.id2str;
@@ -516,7 +525,14 @@ public class Io {
                 }
             }
         }
+
+        // save path to Wordnet
+        try (BufferedWriter bw = Files.newBufferedWriter(wnPath, Charset.defaultCharset())) {
+            bw.write(Config.wndictPath);
+            bw.write("\n");
+        }
     }
+
     public static ArrayWeights loadWeights(Path path) throws IOException {
         try (FileChannel fc = new FileInputStream(path.toString()).getChannel()) {
             ByteBuffer buf = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());

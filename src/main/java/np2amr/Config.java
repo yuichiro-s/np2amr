@@ -1,5 +1,9 @@
 package np2amr;
 
+import edu.mit.jwi.Dictionary;
+import edu.mit.jwi.IDictionary;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -26,10 +30,19 @@ public class Config {
 
     public static Map<Integer, OntoPredicate> preds = null;
 
+    public static IDictionary wndict;
+    public static String wndictPath;
+
     private Config() {}
 
     public static Set<Integer> labelIds;
     public static Map<Integer, Integer> reverseLabelMap;    // entries are for example "ARG0-of".id -> "ARG0".id
+
+    public static void loadWnDict(String path) throws IOException {
+        wndict = new Dictionary(new File(path));
+        wndict.open();
+        wndictPath = path;
+    }
 
     /**
      * Lists possible concept fragments invoked by the word (lemma, POS)

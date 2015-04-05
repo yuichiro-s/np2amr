@@ -27,6 +27,7 @@ import np2amr.feature.LemmaFeature;
 import np2amr.feature.PosFeature;
 import np2amr.feature.Suffix2Feature;
 import np2amr.feature.Suffix3Feature;
+import np2amr.feature.WordnetFeature;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -49,6 +50,7 @@ public class Main {
         allFts.add(new ConceptFeature());
         allFts.add(new Suffix2Feature());
         allFts.add(new Suffix3Feature());
+        allFts.add(new WordnetFeature());
 
         name2Ft = new HashMap<>();
         for (FeatureTemplate ft: allFts) {
@@ -61,6 +63,7 @@ public class Main {
     public static final String A2N_PATH = "adj2noun";
     public static final String ONTO_PATH = "ontonotes_predicates";
     public static final String FTS_PATH = "fts";
+    public static final String WN_PATH = "wordnet";
     public static final String STRING2ID_PATH = "string_id_map";
     public static final String LABELS_PATH = "labels";
     public static final String CONCEPT_TABLE_PATH = "concept_table";
@@ -117,6 +120,7 @@ public class Main {
         opts.addOption(featureOpt);
         opts.addOption(null, "featSize", true, "feature size");
         opts.addOption(null, "iter", true, "number of iterations");
+        opts.addOption(null, "wn", true, "path to Wordnet dictionary directory");
 
         opts.addOption(null, "test", true, "test mode");
         opts.addOption(null, "interactive", false, "interactive test mode");
@@ -138,7 +142,8 @@ public class Main {
                 String[] featureNames = cmd.getOptionValues("feature");
                 int iterNum = Integer.valueOf(cmd.getOptionValue("iter"));
                 int featSize = 1 << (Integer.valueOf(cmd.getOptionValue("featSize")));
-                train(trainPath, modelPath, dataPath, Arrays.asList(featureNames), iterNum, beamWidth, featSize);
+                String wnPath = cmd.getOptionValue("wn");
+                train(trainPath, modelPath, dataPath, wnPath, Arrays.asList(featureNames), iterNum, beamWidth, featSize);
             } else {
                 // test mode
                 String weightsName = cmd.getOptionValue("ws");
@@ -160,7 +165,7 @@ public class Main {
         Files.copy(srcDirPath.resolve(name), trgDirPath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
     }
 
-    private static void train(Path trainPath, Path destPath, Path dataPath, List<String> features, int iterNum, int beamWidth, int featSize) throws IOException {
+    private static void train(Path trainPath, Path destPath, Path dataPath, String wnPath, List<String> features, int iterNum, int beamWidth, int featSize) throws IOException {
         loadMappingFiles(dataPath);
         Triple<List<List<Token>>, Map<Integer, Set<Concept>>, Set<Integer>> t = Io.loadAlignment(trainPath);
 
@@ -168,6 +173,8 @@ public class Main {
         Config.conceptTable = t.getMiddle();
         Config.labelIds = t.getRight();
         Io.addReverseRelations();
+
+        Config.loadWnDict(wnPath);
 
         List<FeatureTemplate> fts = new ArrayList<>();
         for (String f: features) {
@@ -198,6 +205,7 @@ public class Main {
                 bw.write("\n");
             }
         }
+
     }
 
     private static String parse(List<String> tokStrs, BeamDecoder decoder, LinearScorer scorer) {

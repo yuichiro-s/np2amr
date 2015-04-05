@@ -234,7 +234,7 @@ public class State {
 
     private static Map<Integer, Boolean> isPredMem = new HashMap<>();
     /**
-     * Returns whether this label is ARGn.
+     * Returns whether this is predicate or not.
      */
     private static boolean isPred(int id) {
         if (isPredMem.containsKey(id)) {
