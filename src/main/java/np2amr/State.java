@@ -76,14 +76,13 @@ public class State {
         }
     }
 
-
     private ShiftAction goldShiftAction() {
         Token tok = toks.get(right);
 
         Concept goldConcept = tok.goldConcept;
         assert goldConcept != null;
 
-        for (Pair<ShiftAction.Type, Concept> p: Config.identifyConcepts(tok)) {
+        for (Pair<ShiftAction.Type, Concept> p: Util.identifyConcepts(tok)) {
             ShiftAction.Type type = p.getLeft();
             Concept c = p.getRight();
             if (c.equals(goldConcept)) {
@@ -158,7 +157,7 @@ public class State {
             // token to identify concept
             Token tok = toks.get(right);
 
-            Config.identifyConcepts(tok).stream().forEach((p) -> {
+            Util.identifyConcepts(tok).stream().forEach((p) -> {
                 ShiftAction.Type type = p.getLeft();
                 Concept newConcept = p.getRight();
                 res.add(new ShiftAction(type, newConcept));
@@ -217,48 +216,18 @@ public class State {
             // resolve reversed label
             int labelId = a.labelId;
             int predId = cHead.conceptId;
-            if (Config.reverseLabelMap.containsKey(a.labelId)) {
-                labelId = Config.reverseLabelMap.get(a.labelId);
+            if (Util.isReversedLabel(a.labelId)) {
+                labelId = Util.normalizeLabel(a.labelId);
                 predId = cTail.conceptId;
             }
 
-            if (isPred(predId)) {
+            if (Util.isPred(predId)) {
                 return allowedLabel(predId, labelId);
             } else {
                 // it's not a prediacte
                 // not allowed to take ARGn
-                return !isArgLabel(labelId);
+                return !Util.isArgLabel(labelId);
             }
-        }
-    }
-
-    private static Map<Integer, Boolean> isPredMem = new HashMap<>();
-    /**
-     * Returns whether this is predicate or not.
-     */
-    private static boolean isPred(int id) {
-        if (isPredMem.containsKey(id)) {
-            return isPredMem.get(id);
-        } else {
-            String str = Util.s(id);
-            boolean b = str.contains("-") && str.length() >= 3;
-            isPredMem.put(id, b);
-            return b;
-        }
-    }
-
-
-    private static Map<Integer, Boolean> isArgLabelMem = new HashMap<>();
-    /**
-     * Returns whether this label is ARGn.
-     */
-    private static boolean isArgLabel(int labelId) {
-        if (isArgLabelMem.containsKey(labelId)) {
-            return isArgLabelMem.get(labelId);
-        } else {
-            boolean b = Util.s(labelId).startsWith("ARG");
-            isArgLabelMem.put(labelId, b);
-            return b;
         }
     }
 
@@ -271,11 +240,12 @@ public class State {
      */
     private static boolean allowedLabel(int predId, int labelId) {
         if (!Config.preds.containsKey(predId)) {
-            // non-registered predicate
+            // unknown predicate
             return true;
         } else {
+            // known predicate
             OntoPredicate pred = Config.preds.get(predId);
-            if (isArgLabel(labelId)) {
+            if (Util.isArgLabel(labelId)) {
                 // label is ARGn
                 List<Integer> allowedLabels;
                 if (predArgMem.containsKey(pred)) {

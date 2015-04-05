@@ -11,6 +11,7 @@ import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,10 +22,10 @@ import java.util.Set;
 import np2amr.ArrayWeights;
 import np2amr.Config;
 import np2amr.CoreNlpWrapper;
-import np2amr.Main;
 import np2amr.StringIdMap;
 import np2amr.Token;
 import np2amr.Util;
+import np2amr.feature.FeatureTemplate;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Pair;
@@ -79,25 +80,31 @@ public class Io {
         return tokss;
     }
 
+    /**
+     * Reads JAMR alignemt file and returns AMRs, concept mappings, and used labels.
+     * @param path
+     * @return
+     * @throws IOException 
+     */
     public static Triple<List<List<Token>>, Map<Integer, Set<Concept>>, Set<Integer>> loadAlignment(Path path) throws IOException {
-        List<List<Token>> res = new ArrayList<>();
-
-        List<String> tokStrs = null;
-        Map<String, Concept> nodeStr2Concept = new HashMap<>();
-        Map<String, IdentityHashSet<Concept>> span2Concepts = new HashMap<>();
-        Concept root = null;
-        // Note: use IdentityHashMap, so that identity of concept holds before and after attachment to another concept
-        IdentityHashMap<Concept, Pair<Integer, Concept>> edges = new IdentityHashMap<>();   // concept -> (label id, head concept)
-        IdentityHashMap<Concept, Integer> concept2Idx = new IdentityHashMap<>();
-
+        List<List<Token>> amrs = new ArrayList<>();
         Map<Integer, Set<Concept>> conceptTable = new HashMap<>();
         Set<Integer> labelIds = new HashSet<>();
 
         // add root label id
-        int rootLabelId = Config.stringIdMap.getId("root");
+        int rootLabelId = Util.i(Config.ROOT_LABEL);
         labelIds.add(rootLabelId);
 
+        // process line by line
         try (BufferedReader br = Files.newBufferedReader(path, Charset.defaultCharset())) {
+            List<String> tokStrs = null;
+            Map<String, Concept> nodeStr2Concept = new HashMap<>();
+            Map<String, IdentityHashSet<Concept>> span2Concepts = new HashMap<>();
+            Concept root = null;
+            // Note: use IdentityHashMap, so that identity of concepts holds before and after attaching to another concept
+            IdentityHashMap<Concept, Pair<Integer, Concept>> edges = new IdentityHashMap<>();   // concept -> (label id, head concept)
+            IdentityHashMap<Concept, Integer> concept2Idx = new IdentityHashMap<>();
+
             String line;
             boolean ignore = false;
             while ((line = br.readLine()) != null) {
@@ -127,7 +134,7 @@ public class Io {
                                     }
                                     String nodeStr = es.get(2);
                                     String name = es.get(3);
-                                    Concept c = new Concept(Config.stringIdMap.getId(name));
+                                    Concept c = new Concept(Util.i(name));
                                     nodeStr2Concept.put(nodeStr, c);
 
                                     String spanStr = es.get(4);
@@ -150,14 +157,20 @@ public class Io {
                                     String nodeStr1 = es.get(5);    // parent
                                     String nodeStr2 = es.get(6);    // child
                                     String labelStr = es.get(3);
-                                    int labelId  = Config.stringIdMap.getId(labelStr);
+                                    int labelId  = Util.i(labelStr);
+
+                                    // register label
                                     labelIds.add(labelId);
+                                    if (Util.isReversedLabel(labelId)) {
+                                        // if reversed label, register the counterpart
+                                        labelIds.add(Util.normalizeLabel(labelId));
+                                    }
 
                                     Concept c1 = nodeStr2Concept.get(nodeStr1); // head
                                     Concept c2 = nodeStr2Concept.get(nodeStr2);
 
-                                    assert c1.conceptId == Config.stringIdMap.getId(es.get(2));
-                                    assert c2.conceptId == Config.stringIdMap.getId(es.get(4));
+                                    assert c1.conceptId == Util.i(es.get(2));
+                                    assert c2.conceptId == Util.i(es.get(4));
 
                                     edges.put(c2, new ImmutablePair<>(labelId, c1));
                                     break;
@@ -189,7 +202,7 @@ public class Io {
                                 }
                             }
 
-                            // connect edges between two fragments
+                            // connect edges spanning across two fragments
                             for (Map.Entry<Concept, Pair<Integer, Concept>> e2: edges.entrySet()) {
                                 Concept c = e2.getKey();
                                 Pair<Integer, Concept> p = e2.getValue();
@@ -222,7 +235,7 @@ public class Io {
                             List<Token> toks = new ArrayList<>();
                             List<Integer> tokIds = new ArrayList<>();
                             for (String tokStr: tokStrs) {
-                                tokIds.add(Config.stringIdMap.getId(tokStr));
+                                tokIds.add(Util.i(tokStr));
                             }
                             List<Integer> lemmaIds = CoreNlpWrapper.lemma(tokIds);
                             List<Integer> posIds = CoreNlpWrapper.pos(tokIds);
@@ -242,8 +255,8 @@ public class Io {
                                     if (c.parent == null) {
                                         if (rootConcept != null) {
                                             throw new RuntimeException(String.format("Multiple roots: %s & %s",
-                                                    Config.stringIdMap.getString(rootConcept.conceptId),
-                                                    Config.stringIdMap.getString(c.conceptId)));
+                                                    Util.s(rootConcept.conceptId),
+                                                    Util.s(c.conceptId)));
                                         }
                                         rootConcept = c;
                                     }
@@ -294,8 +307,7 @@ public class Io {
                                 }
                                 toks.add(tok);
                             }
-
-                            res.add(toks);
+                            amrs.add(toks);
                         }
                         
                         // init
@@ -315,7 +327,7 @@ public class Io {
             }
         }
 
-        return new ImmutableTriple<>(res, conceptTable, labelIds);
+        return new ImmutableTriple<>(amrs, conceptTable, labelIds);
     }
 
     public static List<String> loadLines(Path path) throws IOException {
@@ -355,8 +367,8 @@ public class Io {
                 assert es.length == 2;
                 String orig = es[0];
                 String trg = es[1];
-                int origId = Config.stringIdMap.getId(orig);
-                int trgId = Config.stringIdMap.getId(trg);
+                int origId = Util.i(orig);
+                int trgId = Util.i(trg);
                 if (res.containsKey(origId)) {
                     res.get(origId).add(trgId);
                 } else {
@@ -394,11 +406,11 @@ public class Io {
                 for (String n: es[2].split(",")) {
                     args.add(Integer.valueOf(n));
                 }
-                int predId = Config.stringIdMap.getId(name);
+                int predId = Util.i(name);
                 OntoPredicate pred = new OntoPredicate(predId, args);
                 predMap.put(predId, pred);
 
-                int verbId = Config.stringIdMap.getId(verb);
+                int verbId = Util.i(verb);
                 if (res.containsKey(verbId)) {
                     res.get(verbId).add(pred);
                 } else {
@@ -412,25 +424,11 @@ public class Io {
         return new ImmutablePair<>(res, predMap);
     }
 
-    public static void addReverseRelations() {
-        Config.reverseLabelMap = new HashMap<>();
-        for (int labelId: new ArrayList<>(Config.labelIds)) {
-            String labelStr = Util.s(labelId);
-            if (labelStr.endsWith("-of")) {
-                String labelWithOutOf = labelStr.substring(0, labelStr.length()-3);
-                int labelWithOutOfId = Util.i(labelWithOutOf);
-                Config.labelIds.add(labelWithOutOfId);
-
-                Config.reverseLabelMap.put(labelId, labelWithOutOfId);
-            }
-        }
-    }
-
     public static void loadConfig(Path path) throws IOException {
-        Path stringIdMapPath = path.resolve(Main.STRING2ID_PATH);
-        Path labelsPath = path.resolve(Main.LABELS_PATH);
-        Path conceptTablePath = path.resolve(Main.CONCEPT_TABLE_PATH);
-        Path wnPath = path.resolve(Main.WN_PATH);
+        Path stringIdMapPath = path.resolve(Config.STRING2ID_NAME);
+        Path labelsPath = path.resolve(Config.LABELS_NAME);
+        Path conceptTablePath = path.resolve(Config.CONCEPT_TABLE_NAME);
+        Path wnPath = path.resolve(Config.WN_NAME);
 
         // create stringIdMap
         Map<String, Integer> str2id = new HashMap<>();
@@ -445,17 +443,17 @@ public class Io {
                 id2str.add(str);
             }
         }
-        Config.stringIdMap = new StringIdMap(str2id, id2str);
+        StringIdMap stringIdMap = new StringIdMap(str2id, id2str);
+        Config.stringIdMap = stringIdMap;   // initialize stringIdMap before any use of Util.i()
 
         // load labels
-        Config.labelIds = new HashSet<>();
+        Set<Integer> labelIds = new HashSet<>();
         try (BufferedReader br = Files.newBufferedReader(labelsPath, Charset.defaultCharset())) {
             String line;
             while ((line = br.readLine()) != null) {
-                Config.labelIds.add(Config.stringIdMap.getId(line));
+                labelIds.add(stringIdMap.getId(line));
             }
         }
-        addReverseRelations();
 
         // load concept mapping
         Map<Integer, Set<Concept>> conceptTable = new HashMap<>();
@@ -463,7 +461,7 @@ public class Io {
             String line;
             while ((line = br.readLine()) != null) {
                 String[] es = line.split("\t", 2);
-                int id = Config.stringIdMap.getId(es[0]);
+                int id = Util.i(es[0]);
                 Set<Concept> cs;
                 if (conceptTable.containsKey(id)) {
                     cs = conceptTable.get(id);
@@ -475,21 +473,29 @@ public class Io {
                 cs.add(c);
             }
         }
-        Config.conceptTable = conceptTable;
 
         // load Wordnet
+        String wndictPath;
         try (BufferedReader br = Files.newBufferedReader(wnPath, Charset.defaultCharset())) {
-            String pathStr = br.readLine();
-            Config.loadWnDict(pathStr);
+            wndictPath = br.readLine();
         }
+
+        // load features
+        List<String> featureNames = Io.loadLines(path.resolve(Config.FTS_NAME));
+
+        Config.setConfig(path, conceptTable, labelIds, wndictPath, featureNames);
 
     }
 
-    public static void saveConfig(Path path) throws IOException {
-        Path stringIdMapPath = path.resolve(Main.STRING2ID_PATH);
-        Path labelsPath = path.resolve(Main.LABELS_PATH);
-        Path conceptTablePath = path.resolve(Main.CONCEPT_TABLE_PATH);
-        Path wnPath = path.resolve(Main.WN_PATH);
+    private static void copyDataFile(Path srcDirPath, Path trgDirPath, String name) throws IOException {
+        Files.copy(srcDirPath.resolve(name), trgDirPath.resolve(name), StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    public static void saveConfig(Path dataPath, Path destPath) throws IOException {
+        Path stringIdMapPath = destPath.resolve(Config.STRING2ID_NAME);
+        Path labelsPath = destPath.resolve(Config.LABELS_NAME);
+        Path conceptTablePath = destPath.resolve(Config.CONCEPT_TABLE_NAME);
+        Path wnPath = destPath.resolve(Config.WN_NAME);
 
         // save stringIdMap
         List<String> id2str = Config.stringIdMap.id2str;
@@ -507,7 +513,7 @@ public class Io {
         // write labels
         try (BufferedWriter bw = Files.newBufferedWriter(labelsPath, Charset.defaultCharset())) {
             for (int labelId: Config.labelIds) {
-                bw.write(Config.stringIdMap.getString(labelId));
+                bw.write(Util.s(labelId));
                 bw.write("\n");
             }
         }
@@ -518,7 +524,7 @@ public class Io {
                 int id = e.getKey();
                 Set<Concept> cs = e.getValue();
                 for (Concept c: cs) {
-                    bw.write(Config.stringIdMap.getString(id));
+                    bw.write(Util.s(id));
                     bw.write("\t");
                     bw.write(c.toString());
                     bw.write("\n");
@@ -526,10 +532,24 @@ public class Io {
             }
         }
 
-        // save path to Wordnet
+        // save destPath to Wordnet
         try (BufferedWriter bw = Files.newBufferedWriter(wnPath, Charset.defaultCharset())) {
             bw.write(Config.wndictPath);
             bw.write("\n");
+        }
+
+        // copy mapping files
+        copyDataFile(dataPath, destPath, Config.N2V_NAME);
+        copyDataFile(dataPath, destPath, Config.A2V_NAME);
+        copyDataFile(dataPath, destPath, Config.A2N_NAME);
+        copyDataFile(dataPath, destPath, Config.ONTO_NAME);
+
+        // save featureStrs
+        try (BufferedWriter bw = Files.newBufferedWriter(destPath.resolve(Config.FTS_NAME), Charset.defaultCharset())) {
+            for (FeatureTemplate ft: Config.fts) {
+                bw.write(ft.getName());   // first line is size of feature vector
+                bw.write("\n");
+            }
         }
     }
 
@@ -547,7 +567,7 @@ public class Io {
         }
     }
 
-    public static void writeWeights(Path modelPath, ArrayWeights ws, ArrayWeights wsAvg, int t) throws IOException {
+    public static void saveWeights(Path modelPath, ArrayWeights ws, ArrayWeights wsAvg, int t) throws IOException {
         int size = wsAvg.size;
         int used = 0;
 
@@ -581,4 +601,5 @@ public class Io {
             bw.write(String.format("%.3f%% [%d/%d]\n", ((double)used*100)/size, used, size));
         }
     }
+    
 }

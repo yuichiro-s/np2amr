@@ -112,25 +112,6 @@ public class WordnetFeature extends FeatureTemplate {
         }
     }
 
-
-    public static final Map<Integer, Boolean> isPredMem = new HashMap<>();
-    /**
-     * Returns whether given concept is verb or not.
-     * Determined by whether suffix is "-xx".
-     * @param c
-     * @return 
-     */
-    private static boolean isPred(Concept c) {
-        int id = c.conceptId;
-        if (isPredMem.containsKey(id)) {
-            return isPredMem.get(id);
-        }
-        String str = Util.s(id);
-        boolean res = str.contains("-") && str.length() > 3;
-        isPredMem.put(id, res);
-        return res;
-    }
-
     public static final Map<Integer, Integer> verbIdMem = new HashMap<>();
     /**
      * Removes concept number at the end.
@@ -160,7 +141,7 @@ public class WordnetFeature extends FeatureTemplate {
         if (cs0 == null) {
             feats.add(f("cs0", EMPTY_FEAT));
         } else {
-            if (isPred(cs0)) {
+            if (Util.isPred(cs0.conceptId)) {
                 addHypernymFeatures(feats, getVerbId(cs0.conceptId), true);
             } else {
                 addHypernymFeatures(feats, cs0.conceptId, false);
@@ -170,7 +151,7 @@ public class WordnetFeature extends FeatureTemplate {
         if (cs1 == null) {
             feats.add(f("cs1", EMPTY_FEAT));
         } else {
-            if (isPred(cs1)) {
+            if (Util.isPred(cs1.conceptId)) {
                 addHypernymFeatures(feats, getVerbId(cs1.conceptId), true);
             } else {
                 addHypernymFeatures(feats, cs1.conceptId, false);

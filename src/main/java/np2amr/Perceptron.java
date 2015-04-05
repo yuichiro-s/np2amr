@@ -66,7 +66,7 @@ public class Perceptron {
             // end of iteration
             if (dest != null) {
                 Path modelPath = dest.resolve("iter" + (iterCount+1));
-                Io.writeWeights(modelPath, ws, wsAvg, t);
+                Io.saveWeights(modelPath, ws, wsAvg, t);
             }
         }
     }

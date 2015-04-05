@@ -75,7 +75,7 @@ public class IoTest {
         assertEquals(2, toks.get(2).goldConcept.size());
         assertEquals(1, toks.get(3).goldConcept.size());
         assertEquals(2, conceptTable.size());
-        assertEquals(3, labelIds.size());
+        assertEquals(5, labelIds.size());   // 2 relations without "-of"
     }
 
     @Test
