@@ -19,13 +19,14 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import np2amr.ArrayWeights;
+import np2amr.weights.ArrayWeights;
 import np2amr.Config;
 import np2amr.CoreNlpWrapper;
 import np2amr.StringIdMap;
 import np2amr.Token;
 import np2amr.Util;
 import np2amr.feature.FeatureTemplate;
+import np2amr.weights.MapWeights;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.ImmutableTriple;
 import org.apache.commons.lang3.tuple.Pair;
@@ -163,7 +164,7 @@ public class Io {
                                     labelIds.add(labelId);
                                     if (Util.isReversedLabel(labelId)) {
                                         // if reversed label, register the counterpart
-                                        labelIds.add(Util.normalizeLabel(labelId));
+                                        labelIds.add(Util.flipLabel(labelId));
                                     }
 
                                     Concept c1 = nodeStr2Concept.get(nodeStr1); // head
@@ -483,7 +484,10 @@ public class Io {
         // load features
         List<String> featureNames = Io.loadLines(path.resolve(Config.FTS_NAME));
 
-        Config.setConfig(path, conceptTable, labelIds, wndictPath, featureNames);
+        // load weights type
+        Config.WeightsType weightsType = Io.loadLines(path.resolve(Config.WEIGHTS_TYPE_NAME)).get(0).equals("ARRAY") ? Config.WeightsType.ARRAY : Config.WeightsType.MAP;
+
+        Config.setConfig(path, conceptTable, labelIds, wndictPath, featureNames, weightsType);
 
     }
 
@@ -496,6 +500,7 @@ public class Io {
         Path labelsPath = destPath.resolve(Config.LABELS_NAME);
         Path conceptTablePath = destPath.resolve(Config.CONCEPT_TABLE_NAME);
         Path wnPath = destPath.resolve(Config.WN_NAME);
+        Path wtPath = destPath.resolve(Config.WEIGHTS_TYPE_NAME);
 
         // save stringIdMap
         List<String> id2str = Config.stringIdMap.id2str;
@@ -551,9 +556,18 @@ public class Io {
                 bw.write("\n");
             }
         }
+
+        // save weights type
+        try (BufferedWriter bw = Files.newBufferedWriter(wtPath, Charset.defaultCharset())) {
+            if (Config.weightsType == Config.WeightsType.ARRAY) {
+                bw.write("ARRAY\n");
+            } else {
+                bw.write("MAP\n");
+            }
+        }
     }
 
-    public static ArrayWeights loadWeights(Path path) throws IOException {
+    public static ArrayWeights loadArrayWeights(Path path) throws IOException {
         try (FileChannel fc = new FileInputStream(path.toString()).getChannel()) {
             ByteBuffer buf = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
             int size = buf.getInt();
@@ -567,39 +581,18 @@ public class Io {
         }
     }
 
-    public static void saveWeights(Path modelPath, ArrayWeights ws, ArrayWeights wsAvg, int t) throws IOException {
-        int size = wsAvg.size;
-        int used = 0;
-
-        try (FileChannel fc = new FileOutputStream(modelPath.toString()).getChannel()) {
-            ByteBuffer buf = ByteBuffer.allocate(1 << 28);
-            buf.clear();
-            buf.putInt(size);
-            for (int i = 0; i < size; i++) {
-                float w = ws.weights[i];
-                float wAvg = wsAvg.weights[i];
-                float value = w - wAvg / t;
-                if (value != 0f) {
-                    buf.putInt(i);  // write index
-                    buf.putFloat(value);  // write value
-                    used++;
-                }
-                if (buf.remaining() < 2) {
-                    // write buffer
-                    buf.flip();
-                    fc.write(buf);
-                    buf.clear();
-                }
+    public static MapWeights loadMapWeights(Path path) throws IOException {
+        try (FileChannel fc = new FileInputStream(path.toString()).getChannel()) {
+            ByteBuffer buf = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
+            MapWeights ws = new MapWeights();
+            while (buf.hasRemaining()) {
+                int i = buf.getInt();
+                float v = buf.getFloat();
+                ws.add(i, v);
             }
-            buf.flip();
-            fc.write(buf);
-        }
-
-        // report load factor
-        Path loadFactorPath = modelPath.resolveSibling(modelPath.getFileName() + ".load_factor");
-        try (BufferedWriter bw = Files.newBufferedWriter(loadFactorPath, Charset.defaultCharset())) {
-            bw.write(String.format("%.3f%% [%d/%d]\n", ((double)used*100)/size, used, size));
+            return ws;
         }
     }
+
     
 }

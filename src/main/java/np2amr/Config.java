@@ -35,6 +35,7 @@ public class Config {
     public static final String ONTO_NAME = "ontonotes_predicates";
     public static final String FTS_NAME = "fts";
     public static final String WN_NAME = "wordnet";
+    public static final String WEIGHTS_TYPE_NAME = "weights_type";
     public static final String STRING2ID_NAME = "string_id_map";
     public static final String LABELS_NAME = "labels";
     public static final String CONCEPT_TABLE_NAME = "concept_table";
@@ -102,7 +103,12 @@ public class Config {
 
     public static List<FeatureTemplate> fts;
 
-    public static void setConfig(Path dataPath, Map<Integer, Set<Concept>> conceptTable, Set<Integer> labelIds, String wndictPath, List<String> featureStrs) throws IOException {
+    public enum WeightsType {
+        ARRAY, MAP;
+    }
+    public static WeightsType weightsType = null;
+
+    public static void setConfig(Path dataPath, Map<Integer, Set<Concept>> conceptTable, Set<Integer> labelIds, String wndictPath, List<String> featureStrs, WeightsType weightsType) throws IOException {
 
         Path noun2VerbPath = dataPath.resolve(N2V_NAME);
         Path adj2VerbPath = dataPath.resolve(A2V_NAME);
@@ -158,5 +164,7 @@ public class Config {
             }
             Config.fts.add(ft);
         }
+
+        Config.weightsType = weightsType;
     }
 }

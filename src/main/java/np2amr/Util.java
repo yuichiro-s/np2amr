@@ -115,8 +115,6 @@ public final class Util {
         System.err.println();
                 */
 
-        assert !res.isEmpty();
-
         return res;
     }
 
@@ -180,7 +178,7 @@ public final class Util {
      * @param labelId
      * @return
      */
-    public static int normalizeLabel(int labelId) {
+    public static int flipLabel(int labelId) {
         if (normalizedLabelMem.containsKey(labelId)) {
             return normalizedLabelMem.get(labelId);
         }

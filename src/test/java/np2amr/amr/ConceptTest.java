@@ -73,8 +73,22 @@ public class ConceptTest {
         c7.addChild(c8, 0);
         c7_.addChild(c9, 0);
         assertNotEquals(c7, c7_);
+    }
 
+    @Test
+    public void testToString() {
+        Concept c;
+        c = new Concept(Util.i("rate"));
+        c.addChild(new Concept(Util.i("grow-01")), Util.i("mod"));
+        assertEquals("(r / rate :mod (g / grow-01))", c.toString());
 
+        c = new Concept(Util.i("suit-01"));
+        c.addChild(new Concept(Util.i("-")), Util.i("polarity"));
+        assertEquals("(s / suit-01 :polarity -)", c.toString());
+
+        c = new Concept(Util.i("date-entity"));
+        c.addChild(new Concept(Util.i("10")), Util.i("month"));
+        assertEquals("(d / date-entity :month 10)", c.toString());
     }
 
     @Test
@@ -88,6 +102,14 @@ public class ConceptTest {
         assertEquals(1, c.children.size());
         assertEquals("ARG0-of", Util.s(c.children.get(0).getLeft()));
         assertEquals("fight-01", Util.s(c.children.get(0).getRight().conceptId));
+
+        c = Concept.fromSexp("-");
+        assertEquals("-", Util.s(c.conceptId));
+
+        c = Concept.fromSexp("(e / employ-01 :polarity -)");
+        assertEquals("employ-01", Util.s(c.conceptId));
+        assertEquals("polarity", Util.s(c.children.get(0).getLeft()));
+        assertEquals("-", Util.s(c.children.get(0).getRight().conceptId));
     }
     
 }

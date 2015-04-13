@@ -1,5 +1,6 @@
 package np2amr;
 
+import np2amr.weights.ArrayWeights;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -11,8 +12,11 @@ import java.util.Scanner;
 import java.util.Set;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import static np2amr.Config.WeightsType.ARRAY;
+import static np2amr.Config.WeightsType.MAP;
 import np2amr.amr.Concept;
 import np2amr.amr.Io;
+import np2amr.weights.Weights;
 import org.apache.commons.cli.BasicParser;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -58,7 +62,10 @@ public class Main {
                 Path dataPath = Paths.get(cmd.getOptionValue("data"));
                 String[] featureNames = cmd.getOptionValues("feature");
                 int iterNum = Integer.valueOf(cmd.getOptionValue("iter"));
-                int featSize = 1 << (Integer.valueOf(cmd.getOptionValue("featSize")));
+                int featSize = 0;
+                if (cmd.hasOption("featSize")) {
+                    featSize = 1 << (Integer.valueOf(cmd.getOptionValue("featSize")));
+                }
                 String wnPath = cmd.getOptionValue("wn");
                 train(trainPath, modelPath, dataPath, wnPath, Arrays.asList(featureNames), iterNum, beamWidth, featSize);
             } else {
@@ -87,7 +94,7 @@ public class Main {
         Set<Integer> labelIds = t.getRight();
 
         // set config
-        Config.setConfig(dataPath, conceptTable, labelIds, wnPath, featureStrs);
+        Config.setConfig(dataPath, conceptTable, labelIds, wnPath, featureStrs, featSize == 0 ? MAP : ARRAY);
 
         // train by perceptron
         BeamDecoder decoder = new BeamDecoder(beamWidth);
@@ -139,7 +146,12 @@ public class Main {
     private static void test(Path testPath, Path modelPath, String weightsName, int beamWidth) throws IOException {
         // each step depends on the previous step, don't scramble the order of execution
         Io.loadConfig(modelPath);
-        ArrayWeights weights = Io.loadWeights(modelPath.resolve(weightsName));
+        Weights weights;
+        if (Config.weightsType == ARRAY) {
+            weights = Io.loadArrayWeights(modelPath.resolve(weightsName));
+        } else {
+            weights = Io.loadMapWeights(modelPath.resolve(weightsName));
+        }
 
         BeamDecoder decoder = new BeamDecoder(beamWidth);
         LinearScorer scorer = new LinearScorer(Config.fts, weights);

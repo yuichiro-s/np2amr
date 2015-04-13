@@ -1,5 +1,6 @@
 package np2amr;
 
+import np2amr.weights.Weights;
 import java.util.ArrayList;
 import java.util.List;
 import np2amr.action.Action;
@@ -7,9 +8,9 @@ import np2amr.feature.FeatureTemplate;
 
 public class LinearScorer {
     public final List<FeatureTemplate> fts;
-    public final ArrayWeights weights;
+    public final Weights weights;
 
-    public LinearScorer(List<FeatureTemplate> fts, ArrayWeights weights) {
+    public LinearScorer(List<FeatureTemplate> fts, Weights weights) {
         this.fts = fts;
         this.weights = weights;
     }

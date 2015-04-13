@@ -149,10 +149,11 @@ public class State {
         if (right < toks.size()) {
             // there's something left in buffer
 
-            if (!(prevAct instanceof ReduceAction)) {
+            /*if (!(prevAct instanceof ReduceAction)) {
                 // EMPTY is applicable except for immediately after REDUCE
                 res.add(new EmptyAction());
-            }
+            }*/
+            res.add(new EmptyAction());
 
             // token to identify concept
             Token tok = toks.get(right);
@@ -190,6 +191,8 @@ public class State {
             }
         }
 
+        assert !res.isEmpty();
+
         return res;
     }
 
@@ -217,7 +220,7 @@ public class State {
             int labelId = a.labelId;
             int predId = cHead.conceptId;
             if (Util.isReversedLabel(a.labelId)) {
-                labelId = Util.normalizeLabel(a.labelId);
+                labelId = Util.flipLabel(a.labelId);
                 predId = cTail.conceptId;
             }
 

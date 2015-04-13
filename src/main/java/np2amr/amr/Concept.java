@@ -72,7 +72,7 @@ public final class Concept {
         String name = Util.s(conceptId);
 
         StringBuilder sb = new StringBuilder();
-        if (!name.startsWith("\"")) {
+        if (Character.isLetter(name.charAt(0))) {
             String var = name.substring(0, 1);
             sb.append("(");
             sb.append(var);
@@ -121,13 +121,25 @@ public final class Concept {
 
             // remove variables
             List<String> toksWithOutVars = new ArrayList<>();
+            boolean conceptExpected = true;
             for (int i = 0; i < toks.length; i++) {
-                if (i+1 < toks.length && toks[i+1].equals("/")) {
+                String tok = toks[i];
+                if (conceptExpected && !tok.equals("(")) {
+                    // concept doesn't start with open bracket, insert open and close brackets
+                    toksWithOutVars.add("(");
+                    toksWithOutVars.add(tok);
+                    toksWithOutVars.add(")");
+                    conceptExpected = false;
+                } else if (i+1 < toks.length && toks[i+1].equals("/")) {
                     i++;    // skip two tokens
+                    conceptExpected = false;
                 } else {
-                    toksWithOutVars.add(toks[i]);
+                    toksWithOutVars.add(tok);
+                    conceptExpected = tok.startsWith(":");  // next token will be start of concept
                 }
             }
+
+            // add brackets around concepts without brackets for normalization
             
             List<Object> stack = new ArrayList<>();
             for (String tok: toksWithOutVars) {

@@ -1,5 +1,6 @@
 package np2amr;
 
+import np2amr.weights.ArrayWeights;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -14,14 +15,15 @@ import java.util.logging.Level;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import np2amr.action.Action;
-import np2amr.amr.Io;
 import np2amr.feature.FeatureTemplate;
+import np2amr.weights.MapWeights;
+import np2amr.weights.Weights;
 
 public class Perceptron {
 
     public final List<FeatureTemplate> fts;
-    public final ArrayWeights ws;
-    public final ArrayWeights wsAvg;
+    public final Weights ws;
+    public final Weights wsAvg;
     private int t;
 
     public final LinearScorer scorer;
@@ -30,8 +32,14 @@ public class Perceptron {
     public Perceptron(List<FeatureTemplate> fts, BeamDecoder decoder, int featSize) {
         this.fts = fts;
         this.decoder = decoder;
-        this.ws = new ArrayWeights(featSize);
-        this.wsAvg = new ArrayWeights(featSize);
+        if (featSize == 0) {
+            // use MapWeights
+            this.ws = new MapWeights();
+            this.wsAvg = new MapWeights();
+        } else {
+            this.ws = new ArrayWeights(featSize);
+            this.wsAvg = new ArrayWeights(featSize);
+        }
         this.scorer = new LinearScorer(fts, this.ws);
         this.t = 1;
     }
@@ -66,7 +74,7 @@ public class Perceptron {
             // end of iteration
             if (dest != null) {
                 Path modelPath = dest.resolve("iter" + (iterCount+1));
-                Io.saveWeights(modelPath, ws, wsAvg, t);
+                ws.save(modelPath, wsAvg, t);
             }
         }
     }

@@ -33,16 +33,17 @@ public class BeamDecoder {
             // sort candidates in decreasing order
             cands.sort((t1, t2) -> Double.compare(t2.getRight(), t1.getRight()));
 
-            int count = Math.min(beamSize, cands.size());
-
+            /*
             for (Triple<State, Action, Float> c: cands) {
                 State s = c.getLeft();
                 Action a = c.getMiddle();
                 float score = c.getRight();
-                //System.err.format("%s\t%s\t%s\n", s.concept, a, score);
+                System.err.format("%s\t%s\t%s\n", s.concept, a, score);
             }
-            //System.err.println();
+            System.err.println();
+                    */
             
+            int count = Math.min(beamSize, cands.size());
             kBest = new ArrayList<>();
             for (int i = 0; i < count; i++) {
                 Triple<State, Action, Float> t = cands.get(i);
